@@ -2,8 +2,6 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createClient, HttpError } from '../src/index'
 
-type FetchLike = (input: string | URL | Request, init?: RequestInit) => Promise<Response>
-
 interface Captured {
   url: string
   method: string

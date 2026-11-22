@@ -3,14 +3,16 @@ export class HttpError extends Error {
     readonly path: string
     readonly method: string
     readonly body: string
+    readonly headers: Headers
 
-    constructor(status: number, path: string, method: string, body: string) {
+    constructor(status: number, path: string, method: string, body: string, headers: Headers) {
         super(`HTTP ${status} ${method} ${path}`)
         this.name = 'HttpError'
         this.status = status
         this.path = path
         this.method = method
         this.body = body
+        this.headers = headers
     }
 }
 
@@ -44,12 +46,24 @@ export class ParseError extends Error {
     readonly path: string
     readonly method: string
     readonly body: string
+    readonly headers: Headers
 
-    constructor(path: string, method: string, body: string) {
+    constructor(path: string, method: string, body: string, headers: Headers) {
         super(`Parse error ${method} ${path} ${body}`)
         this.name = 'ParseError'
         this.path = path
         this.method = method
         this.body = body
+        this.headers = headers
+    }
+}
+
+export class HookError extends Error {
+    readonly hook: string
+
+    constructor(hook: string, cause: unknown) {
+        super(`hook "${hook}" failed`, { cause })
+        this.name = 'HookError'
+        this.hook = hook
     }
 }

@@ -31,6 +31,16 @@ const hanging: FetchLike = (_input, init) =>
     // 进程会直接退出，这个 promise 永远 pending，测试被判 cancelled。
     // 用一个 ref 定时器把事件循环撑住，abort 触发后再清掉。
     const keepAlive = setTimeout(() => {}, 5000)
+
+    // signal 可能在 fetch 被调用之前就已 aborted（例如 abort 发生在请求前
+    // 的 await 期间）。abort 事件只发一次、不会补发，所以这里必须显式检查一次，
+    // 否则这个 promise 会永远 pending。真实 fetch 就是这么处理的。
+    if (signal.aborted) {
+      clearTimeout(keepAlive)
+      reject(signal.reason)
+      return
+    }
+
     signal.addEventListener('abort', () => {
       clearTimeout(keepAlive)
       reject(signal.reason)

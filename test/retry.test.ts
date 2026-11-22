@@ -51,6 +51,14 @@ const hangingFetch = (onCall: () => void): FetchLike => (_input, init) =>
       return
     }
     const keepAlive = setTimeout(() => {}, 5000)
+
+    // signal 可能在 fetch 调用前就已 aborted，abort 事件不会补发，这里要显式检查
+    if (signal.aborted) {
+      clearTimeout(keepAlive)
+      reject(signal.reason)
+      return
+    }
+
     signal.addEventListener('abort', () => {
       clearTimeout(keepAlive)
       reject(signal.reason)
