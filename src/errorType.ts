@@ -39,3 +39,17 @@ export class AbortError extends Error {
         this.method = method
     }
 }
+
+export class ParseError extends Error {
+    readonly path: string
+    readonly method: string
+    readonly body: string
+
+    constructor(path: string, method: string, body: string) {
+        super(`Parse error ${method} ${path} ${body}`)
+        this.name = 'ParseError'
+        this.path = path
+        this.method = method
+        this.body = body
+    }
+}
