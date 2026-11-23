@@ -6,8 +6,8 @@ import {
   HookError,
 } from "./errorType";
 export { HttpError, TimeoutError, AbortError, ParseError, HookError };
-import { parseSSE } from "./parse";
-export { parseSSE };
+import { parseSSE, type SSEMessage } from "./parse";
+export { parseSSE, type SSEMessage };
 
 export interface HttpConfig {
   baseUrl?: string;
@@ -78,6 +78,7 @@ export interface HttpResult<T> {
   code: number;
   url: string;
   headers: Headers;
+  redirected: boolean;
 }
 
 export type ResponseType =
@@ -162,6 +163,7 @@ async function readResponse<T>(
     code: res.status,
     url: res.url,
     headers: res.headers,
+    redirected: res.redirected,
   };
 
   switch (responseType) {
@@ -228,14 +230,20 @@ async function readResponse<T>(
   }
 }
 
-async function once<T = unknown>(
+interface SendResult {
+  response: Response;
+  method: string;
+  hooks: Hooks;
+}
+
+async function requestResult(
   config: HttpConfig,
   path: string,
   options: RequestOptions | undefined,
   attempt: number,
   maxRetry: number,
   retryCodes: number[],
-): Promise<HttpResult<T>> {
+): Promise<SendResult> {
   //headers join
   const headers = new Headers(config.headers);
   if (options?.headers) {
@@ -299,6 +307,7 @@ async function once<T = unknown>(
   let res: Response;
   try {
     res = await fetch(reqHC.url, reqOpt);
+    return { response: res, method: finalMethod, hooks };
   } catch (e) {
     let err: unknown = e;
     if (e instanceof DOMException && e.name === "TimeoutError")
@@ -314,14 +323,38 @@ async function once<T = unknown>(
       );
     throw err;
   }
+}
 
+async function once<T = unknown>(
+  config: HttpConfig,
+  path: string,
+  options: RequestOptions | undefined,
+  attempt: number,
+  maxRetry: number,
+  retryCodes: number[],
+): Promise<HttpResult<T>> {
+  let res: Response | undefined;
+  let method = "GET";
+  let hooks: Hooks = {};
   try {
+    const sent = await requestResult(
+      config,
+      path,
+      options,
+      attempt,
+      maxRetry,
+      retryCodes,
+    );
+    res = sent.response;
+    method = sent.method;
+    hooks = sent.hooks;
+
     if (!res.ok) {
       const text = await res.text();
       throw new HttpError(
         res.status,
         path,
-        finalMethod,
+        method,
         text.slice(0, 500),
         res.headers,
       );
@@ -331,13 +364,13 @@ async function once<T = unknown>(
       res,
       options?.responseType,
       path,
-      finalMethod,
+      method,
     );
     await ResponseHooks({ result }, hooks);
     return result;
   } catch (e) {
     const willThrow = attempt >= maxRetry || !shouldRetry(e, retryCodes);
-    if (willThrow)
+    if (willThrow && res)
       await ResponseErrorHooks(
         { error: e, code: res.status, headers: res.headers, url: res.url },
         hooks,
@@ -386,24 +419,25 @@ function mergeSignals(
 }
 
 export function createClient(config: HttpConfig) {
-  async function request<T = unknown>(
+  async function runWithRetry<R>(
     path: string,
-    options?: RequestOptions,
-  ): Promise<HttpResult<T>> {
-    const retry = options?.retry ?? config.retry ?? 0; // default no retry
+    options: RequestOptions | undefined,
+    run: (attempt: number, retry: number, retryCodes: number[]) => Promise<R>,
+  ): Promise<R> {
+    const retry = options?.retry ?? config.retry ?? 0;
     if (!Number.isInteger(retry) || retry < 0) {
       throw new Error(`retry must be a non-negative integer, got ${retry}`);
     }
     const retryCodes = options?.retryCodes ??
       config.retryCodes ?? [500, 502, 503, 504, 508, 429];
     const retryDelay =
-      options?.retryDelay ?? ((attempt: number) => 1000 * attempt ** 2); // 1000 4000 8000ms
+      options?.retryDelay ?? ((attempt: number) => 1000 * attempt ** 2);
 
     let lastError: unknown;
 
     for (let attempt = 0; attempt <= retry; attempt++) {
       try {
-        return await once<T>(config, path, options, attempt, retry, retryCodes);
+        return await run(attempt, retry, retryCodes);
       } catch (e) {
         lastError = e;
         if (attempt >= retry || !shouldRetry(e, retryCodes)) throw e;
@@ -423,6 +457,14 @@ export function createClient(config: HttpConfig) {
       }
     }
     throw lastError;
+  }
+  async function request<T = unknown>(
+    path: string,
+    options?: RequestOptions,
+  ): Promise<HttpResult<T>> {
+    return runWithRetry(path, options, (attempt, retry, retryCodes) =>
+      once<T>(config, path, options, attempt, retry, retryCodes),
+    );
   }
 
   async function get<T = unknown>(
@@ -453,11 +495,37 @@ export function createClient(config: HttpConfig) {
     return request<T>(path, { ...options, method: "DELETE" });
   }
 
-  async function raw<T = unknown>(
+  async function raw(
     path: string,
     options?: RequestOptions,
-  ): Promise<HttpResult<T>> {
-    return request<T>(path, { ...options });
+  ): Promise<Response> {
+    return runWithRetry<Response>(
+      path,
+      options,
+      async (attempt, retry, retryCodes) => {
+        const { response } = await requestResult(
+          config,
+          path,
+          options,
+          attempt,
+          retry,
+          retryCodes,
+        );
+        return response;
+      },
+    );
+  }
+
+  async function* sse(
+    path: string,
+    options?: RequestOptions,
+  ): AsyncGenerator<SSEMessage> {
+    const { data } = await request<ReadableStream<Uint8Array> | null>(path, {
+      ...options,
+      responseType: "stream",
+    });
+    if (!data) return;
+    yield* parseSSE(data);
   }
 
   return {
@@ -466,5 +534,7 @@ export function createClient(config: HttpConfig) {
     post,
     put,
     del,
+    raw,
+    sse,
   };
 }
