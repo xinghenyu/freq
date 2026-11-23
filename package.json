@@ -1,19 +1,37 @@
 {
   "name": "freq",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Zero-dependency TypeScript HTTP client built on native fetch, with retry, hooks and SSE.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsup src/index.ts --format esm --dts --clean",
-    "start": "node dist/index.js",
+    "build": "tsup src/index.ts --format esm --minify --clean && tsc -p tsconfig.build.json",
     "check": "tsc --noEmit",
     "test": "tsx --test \"test/**/*.test.ts\""
   },
-  "keywords": [],
+  "keywords": [
+    "http",
+    "fetch",
+    "client",
+    "sse",
+    "typescript"
+  ],
   "author": "",
   "license": "ISC",
-  "type": "module",
   "devDependencies": {
     "@types/node": "^26.6.6",
     "tsup": "^9.0.0",

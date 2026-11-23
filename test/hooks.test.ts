@@ -38,10 +38,12 @@ test('hook 拿得到拼好的 url、序列化后的 body 和方法', async () =>
   await capture(
     (client) => client.post('/orders', { body: { id: 1 }, query: { t: '2' } }),
     {
-      Hooks: {
-        Request: (ctx) => {
-          seen = { url: ctx.url, method: ctx.method, body: ctx.body }
-        }
+      hooks: {
+        Request: [
+          (ctx) => {
+            seen = { url: ctx.url, method: ctx.method, body: ctx.body }
+          }
+        ]
       }
     }
   )
@@ -54,7 +56,7 @@ test('hook 拿得到拼好的 url、序列化后的 body 和方法', async () =>
 test('hook 写 header 会进到实际请求', async () => {
   const { init } = await capture(
     (client) => client.get('/x'),
-    { Hooks: { Request: (ctx) => { ctx.headers.set('x-sign', 'abc') } } }
+    { hooks: { Request: [(ctx) => { ctx.headers.set('x-sign', 'abc') }] } }
   )
 
   const headers = new Headers(init?.headers)
@@ -64,7 +66,7 @@ test('hook 写 header 会进到实际请求', async () => {
 test('hook 改 url 会换掉实际请求地址', async () => {
   const { url } = await capture(
     (client) => client.get('/x'),
-    { Hooks: { Request: (ctx) => { ctx.url = 'https://other.test/y' } } }
+    { hooks: { Request: [(ctx) => { ctx.url = 'https://other.test/y' }] } }
   )
 
   assert.equal(url, 'https://other.test/y')
@@ -73,7 +75,7 @@ test('hook 改 url 会换掉实际请求地址', async () => {
 test('hook 改 method 会换掉实际请求方法', async () => {
   const { init } = await capture(
     (client) => client.get('/x'),
-    { Hooks: { Request: (ctx) => { ctx.method = 'POST' } } }
+    { hooks: { Request: [(ctx) => { ctx.method = 'POST' }] } }
   )
 
   assert.equal(init?.method, 'POST')
@@ -86,7 +88,7 @@ test('hook 改 method 后 HttpError 记录的是实际方法', async () => {
   try {
     const client = createClient({
       baseUrl: 'https://base.test',
-      Hooks: { Request: (ctx) => { ctx.method = 'POST' } }
+      hooks: { Request: [(ctx) => { ctx.method = 'POST' }] }
     })
 
     await assert.rejects(
@@ -109,7 +111,7 @@ test('FormData 请求时 hook 拿到 undefined，且原始 body 不被冲掉', a
   let seenBody: string | undefined = 'not-called'
   const { init } = await capture(
     (client) => client.post('/upload', { body: fd }),
-    { Hooks: { Request: (ctx) => { seenBody = ctx.body } } }
+    { hooks: { Request: [(ctx) => { seenBody = ctx.body }] } }
   )
 
   assert.equal(seenBody, undefined)
@@ -168,7 +170,7 @@ test('hook 改 method 后 ParseError 记录的也是实际方法', async () => {
   try {
     const client = createClient({
       baseUrl: 'https://base.test',
-      Hooks: { Request: (ctx) => { ctx.method = 'POST' } }
+      hooks: { Request: [(ctx) => { ctx.method = 'POST' }] }
     })
 
     await assert.rejects(() => client.get('/x'), (err) => expectMethod(err, 'POST'))
@@ -184,7 +186,7 @@ test('hook 改 method 后 TimeoutError 记录的也是实际方法', async () =>
   try {
     const client = createClient({
       baseUrl: 'https://base.test',
-      Hooks: { Request: (ctx) => { ctx.method = 'POST' } }
+      hooks: { Request: [(ctx) => { ctx.method = 'POST' }] }
     })
 
     await assert.rejects(
@@ -203,7 +205,7 @@ test('hook 改 method 后 AbortError 记录的也是实际方法', async () => {
   try {
     const client = createClient({
       baseUrl: 'https://base.test',
-      Hooks: { Request: (ctx) => { ctx.method = 'POST' } }
+      hooks: { Request: [(ctx) => { ctx.method = 'POST' }] }
     })
 
     const ctrl = new AbortController()
@@ -225,14 +227,16 @@ test('Response hook 拿得到解析后的 data、code 和响应头', async () =>
       assert.deepEqual(res.data, { ok: true })
     },
     {
-      Hooks: {
-        Response: (ctx) => {
-          seen = {
-            data: ctx.result.data,
-            code: ctx.result.code,
-            isJson: ctx.result.headers.get('content-type') === 'application/json'
+      hooks: {
+        Response: [
+          (ctx) => {
+            seen = {
+              data: ctx.result.data,
+              code: ctx.result.code,
+              isJson: ctx.result.headers.get('content-type') === 'application/json'
+            }
           }
-        }
+        ]
       }
     }
   )
@@ -251,10 +255,12 @@ test('Response hook 改 data 会变成最终返回值', async () => {
       observed = res.data
     },
     {
-      Hooks: {
-        Response: (ctx) => {
-          ctx.result.data = { wrapped: ctx.result.data }
-        }
+      hooks: {
+        Response: [
+          (ctx) => {
+            ctx.result.data = { wrapped: ctx.result.data }
+          }
+        ]
       }
     }
   )
@@ -270,7 +276,7 @@ test('非 2xx 响应不会触发 Response hook', async () => {
   try {
     const client = createClient({
       baseUrl: 'https://base.test',
-      Hooks: { Response: () => { called = true } }
+      hooks: { Response: [() => { called = true }] }
     })
     await assert.rejects(() => client.get('/x'), HttpError)
   } finally {
@@ -291,24 +297,25 @@ test('返回值带 code / ok / url，mock 下 url 是空串', async () => {
   })
 })
 
-test('单次请求的 Hooks 覆盖 config 的 Hooks', async () => {
-  let configRan = 0
-  let singleRan = 0
+test('单次请求的 Hooks 叠加在 config 的 Hooks 之后', async () => {
+  const order: string[] = []
 
   await capture(
-    (client) => client.get('/x', { Hooks: { Request: () => { singleRan++ } } }),
-    { Hooks: { Request: () => { configRan++ } } }
+    (client) =>
+      client.get('/x', {
+        hooks: { Request: [() => { order.push('single') }] }
+      }),
+    { hooks: { Request: [() => { order.push('config') }] } }
   )
 
-  assert.equal(configRan, 0, 'config 的 hook 不应执行')
-  assert.equal(singleRan, 1, '单次请求的 hook 应执行')
+  assert.deepEqual(order, ['config', 'single'], 'config 在前，单次在后')
 })
 
 test('单次请求不传 Hooks 时回落到 config', async () => {
   let configRan = 0
 
   await capture((client) => client.get('/x'), {
-    Hooks: { Request: () => { configRan++ } }
+    hooks: { Request: [() => { configRan++ }] }
   })
 
   assert.equal(configRan, 1)

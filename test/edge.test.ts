@@ -230,7 +230,7 @@ test('Request hook 抛错不参与重试，hook 只跑一次', async () => {
     async (client) => {
       await assert.rejects(() => client.get('/x', { retry: 3 }), HookError)
     },
-    { Hooks: { Request: () => { hookCalls++; throw new Error('sign failed') } } }
+    { hooks: { Request: [() => { hookCalls++; throw new Error('sign failed') }] } }
   )
 
   assert.equal(fetched, 0, 'hook 抛错时请求根本没发出去')
@@ -252,7 +252,7 @@ test('HookError 保留原始错误在 cause 上', async () => {
         }
       )
     },
-    { Hooks: { Request: () => { throw boom } } }
+    { hooks: { Request: [() => { throw boom }] } }
   )
 })
 
@@ -264,7 +264,7 @@ test('重试多次时 ResponseError 只应上报最终失败一次', async () =>
     async (client) => {
       await assert.rejects(() => client.get('/x', { retry: 2, retryDelay: 1 }), HttpError)
     },
-    { Hooks: { ResponseError: () => { reports++ } } }
+    { hooks: { ResponseError: [() => { reports++ }] } }
   )
 
   assert.equal(reports, 1, `应只上报一次，实际上报次数: ${reports}`)
@@ -283,7 +283,7 @@ test('错误钩子自己抛错时，业务拿到的仍是原始错误', async ()
         }
       )
     },
-    { Hooks: { ResponseError: () => { throw new Error('reporter broken') } } }
+    { hooks: { ResponseError: [() => { throw new Error('reporter broken') }] } }
   )
 })
 
@@ -296,10 +296,12 @@ test('ParseError 归入响应错误域，且 code 是真实状态码', async () 
       await assert.rejects(() => client.get('/x'), ParseError)
     },
     {
-      Hooks: {
-        ResponseError: (ctx) => {
-          observed = { code: ctx.code, isParse: ctx.error instanceof ParseError }
-        }
+      hooks: {
+        ResponseError: [
+          (ctx) => {
+            observed = { code: ctx.code, isParse: ctx.error instanceof ParseError }
+          }
+        ]
       }
     }
   )
