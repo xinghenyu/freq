@@ -4,7 +4,7 @@ Name: `fetch-request -> freq`
 
 Zero-dependency TypeScript HTTP client built on native `fetch`, with built-in SSE parsing.
 
-[中文文档](./README-cn.md)
+[中文文档](https://github.com/xinghenyu/freq/blob/master/README-cn.md)
 
 - Throws on non-2xx, no need to check `ok` yourself
 - `baseURL` prefix and `query` joined automatically

@@ -212,7 +212,7 @@ export function createClient(config: HttpConfig) {
           if (raw.name === "AbortError") {
             e = new AbortError(path, method, raw);
           } else if (raw.name === "TimeoutError") {
-            e = new TimeoutError(requestOptions.timeout ?? 0, path, method, raw);
+            e = new TimeoutError(requestOptions.timeout, path, method, raw);
           }
         }
 

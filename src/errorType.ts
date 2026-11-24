@@ -23,13 +23,18 @@ export class HttpError extends Error {
 }
 
 export class TimeoutError extends Error {
-  readonly timeout: number;
+  readonly timeout: number | undefined;
   readonly path: string;
   readonly method: string;
 
-  constructor(timeout: number, path: string, method: string, cause?: unknown) {
+  constructor(
+    timeout: number | undefined,
+    path: string,
+    method: string,
+    cause?: unknown,
+  ) {
     super(
-      `Timeout ${timeout}ms ${method} ${path}`,
+      timeout ? `Timeout ${timeout}ms ${method} ${path}` : `Timeout ${method} ${path}`,
       cause === undefined ? undefined : { cause },
     );
     this.name = "TimeoutError";

@@ -4,6 +4,8 @@
 
 零依赖的 TypeScript HTTP请求库，基于原生 `fetch` ,自带SSE解析。
 
+[English](https://github.com/xinghenyu/freq/blob/master/README.md)
+
 - 非 2xx 直接抛错，不用自己判 `ok`
 - `baseURL` 前缀与 `query` 自动拼接
 - `get` / `post` / `put` / `del` 便捷方法，`path` 也能直接传 `http(s)://` 开头的完整 URL

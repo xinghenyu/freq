@@ -199,8 +199,10 @@ export async function requestResult(
     return { response: res, method: finalMethod, hooks };
   } catch (e) {
     let err: unknown = e;
-    if (e instanceof DOMException && e.name === "TimeoutError")
-      err = new TimeoutError(timeoutNum!, path, finalMethod, e);
+    if (e instanceof DOMException && e.name === "TimeoutError") {
+      const own = timeoutSignal !== undefined && e === timeoutSignal.reason;
+      err = new TimeoutError(own ? timeoutNum : undefined, path, finalMethod, e);
+    }
     if (e instanceof DOMException && e.name === "AbortError")
       err = new AbortError(path, finalMethod, e);
 

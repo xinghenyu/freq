@@ -1,6 +1,6 @@
 {
   "name": "@djiji/freq",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Zero-dependency TypeScript HTTP client built on native fetch, with retry, hooks and SSE.",
   "type": "module",
   "main": "./dist/index.js",
@@ -12,7 +12,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README-cn.md"
   ],
   "sideEffects": false,
   "engines": {
