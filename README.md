@@ -1,40 +1,42 @@
 # freq
 
-命名：`fetch-request -> freq`
+Name: `fetch-request -> freq`
 
-零依赖的 TypeScript HTTP请求库，基于原生 `fetch` ,自带SSE解析。
+Zero-dependency TypeScript HTTP client built on native `fetch`, with built-in SSE parsing.
 
-- 非 2xx 直接抛错，不用自己判 `ok`
-- `baseURL` 前缀与 `query` 自动拼接
-- `get` / `post` / `put` / `del` 便捷方法，`path` 也能直接传 `http(s)://` 开头的完整 URL
-- 类型友好：`api.get<User>()` 直接拿到 `User`
-- 按 `content-type` 自动解析响应
-- 重试、超时、取消
-- Hooks 四个时机
-- 自带 SSE 解析与断线重连
-- `raw()` 导出原生 `Response`
+[中文文档](./README-cn.md)
+
+- Throws on non-2xx, no need to check `ok` yourself
+- `baseUrl` prefix and `query` joined automatically
+- `get` / `post` / `put` / `del` shortcuts, `path` can also be a full `http(s)://` URL
+- Typed: `api.get<User>()` gives you a `User`
+- Parses the body by `content-type`
+- Retry, timeout, cancellation
+- Four hook stages
+- Built-in SSE parsing and reconnection
+- `raw()` returns the native `Response`
 
 ```bash
 npm i @djiji/freq
 ```
 
-Node >= 20。
+Node >= 20.
 
-## 快速开始
+## Quick Start
 
 ```ts
 import { createClient } from "@djiji/freq";
 
-// 创建一个全局的连接配置，这是必要步骤
+// create one client with shared config — this step is required
 const api = createClient({ baseUrl: "https://example.com" });
 
-// 定义一个用户接口
+// describe the shape you expect
 interface User {
   name: string;
   age: number;
 }
 
-// 发送一个 GET 请求，返回一个用户列表
+// GET a list of users
 const res = await api.get<User[]>("/users", {
   query: { page: "2", size: "10" },
 });
@@ -46,7 +48,7 @@ res.url; // https://example.com/users?page=2&size=10
 
 ```ts
 ...
-const api = createClient({}); // 可以传空值
+const api = createClient({}); // an empty config is fine
 ...
 const res = await api.get<User[]>("https://example.com/users", {
   query: { page: "2", size: "10" },
@@ -54,70 +56,71 @@ const res = await api.get<User[]>("https://example.com/users", {
 ...
 ```
 
-## 便捷方法
+## Shortcuts
 
 ```ts
 api.get("/users", { query: { page: "1" } });
-api.get("https://example.com/users", { query: { page: "1" } }); // 支持绝对路径
+api.get("https://example.com/users", { query: { page: "1" } }); // absolute URL works
 api.post("/users", { body: { name: "djiji" } });
 api.put("/users/1", { body: { age: 19 } });
 api.del("/users/1");
 ```
 
-四个都是 `api.request()` 加 `method` 的包装：
+All four are `api.request()` with a `method`:
 
 ```ts
-// 等价关系
+// equivalent
 api.request("/users", { method: "GET" });
 api.get("/users");
 ...
 ```
 
-## 请求及响应参数
+## Request and Response
 
-注意.get(), post(), put(), del() 等便捷方法传参几乎一致
+Note: `.get()`, `.post()`, `.put()` and `.del()` take almost the same options.
 
-**请求参数**
+**Request**
 ` const api = createClient(options?: HttpConfig) `
 ```ts
-  baseURL?: string; // URL 前缀
-  headers?: HeadersInit; // 默认请求头
-  timeout?: number; // 请求超时时间
-  signal?: AbortSignal; // 取消信号
-  retry?: number; // 重试次数, 默认0
-  retryDelay?: number | ((attempt: number) => number | Promise<number>); // 重试延迟时间
-  retryCodes?: number[]; // 重试状态码
-  hooks?: Hooks; // 四个Hook
-  sseReconnect?: SSEReconnect; // SSE 断线重连
-  responseType?: ResponseType; // 响应体类型，json、text...
+  baseUrl?: string; // URL prefix
+  headers?: HeadersInit; // default headers
+  timeout?: number; // request timeout
+  signal?: AbortSignal; // cancellation signal
+  retry?: number; // retry count, default 0
+  retryDelay?: number | ((attempt: number) => number | Promise<number>); // retry delay
+  retryCodes?: number[]; // status codes to retry
+  hooks?: Hooks; // four hooks
+  sseReconnect?: SSEReconnect; // SSE reconnection
+  responseType?: ResponseType; // json, text...
 ```
-` api.request(path: string, options?: RequestInit) `
+` api.request(path: string, options?: RequestOptions) `
 ```ts
-  method?: string; // 请求方法
-  body?: BodyInit | Record<string, unknown> | unknown[] | null; // 请求体,普通对象自动格式化并添加Content-Type
-  headers?: HeadersInit; // 请求头
-  timeout?: number; // 请求超时时间，优先级高于全局
-  signal?: AbortSignal; // 取消信号
-  query?: Record<string, string>; // 查询参数，自动拼接及编码
-  responseType?: ResponseType; // 响应体类型，json、text...，优先级高于全局
-  retry?: number; // 重试次数, 默认0
-  retryDelay?: number | ((attempt: number) => number | Promise<number>); // 重试延迟时间
-  retryCodes?: number[]; // 重试状态码
-  hooks?: Hooks; // 四个Hook
+  method?: string; // HTTP method
+  body?: BodyInit | Record<string, unknown> | unknown[] | null; // plain objects are stringified, content-type is set
+  headers?: HeadersInit; // request headers
+  timeout?: number; // overrides the global one
+  signal?: AbortSignal; // cancellation signal
+  query?: Record<string, string>; // joined and encoded automatically
+  responseType?: ResponseType; // overrides the global one
+  retry?: number; // retry count, default 0
+  retryDelay?: number | ((attempt: number) => number | Promise<number>); // retry delay
+  retryCodes?: number[]; // status codes to retry
+  hooks?: Hooks; // four hooks
 ```
 
-**返回参数**
+**Response**
 ```ts
-  data: T; // 解析后的响应体，泛型支持
-  ok: boolean; // 恒为 `true`，失败一律抛错
-  code: number; // 状态码
-  url: string; // 最终地址，跟随重定向后
-  headers: Headers; // 响应头
-  redirected: boolean; // 是否发生过重定向
+  data: T; // parsed body, typed by the generic
+  ok: boolean; // always true, failures throw
+  code: number; // status code
+  url: string; // final URL after redirects
+  headers: Headers; // response headers
+  redirected: boolean; // whether a redirect happened
 ```
+
 ## SSE
 
-底层用法：自己拿流，用自带解析器处理。
+Low-level: grab the stream yourself and feed it to the built-in parser.
 
 ```ts
 const res = await api.request<ReadableStream>("/events", {
@@ -130,7 +133,7 @@ for await (const ev of parseSSE(res.data!)) {
 }
 ```
 
-简便方法，请求和解析一步到位：
+Shortcut — request and parse in one step:
 
 ```ts
 for await (const ev of api.sse("/events")) {
@@ -138,7 +141,7 @@ for await (const ev of api.sse("/events")) {
 }
 ```
 
-加 `reconnect`，断了会自己重连并带上 `Last-Event-ID` 续传：
+With `reconnect`, a dropped connection is reopened with `Last-Event-ID` to resume:
 
 ```ts
 for await (const ev of api.sse("/events", { reconnect: { retry: 3 } })) {
@@ -146,72 +149,72 @@ for await (const ev of api.sse("/events", { reconnect: { retry: 3 } })) {
 }
 ```
 
-**请求参数**
+**Request**
 ` for await (const ev of api.sse(path: string, options?: SSEOptions)) `
 ```ts
-  path: string; // 相对路径或 http(s):// 完整 URL
-  method?: string; // 请求方法，默认 GET
-  body?: BodyInit | Record<string, unknown> | unknown[] | null; // 请求体
-  headers?: HeadersInit; // 请求头，不传自动补 accept: text/event-stream
-  timeout?: number; // 默认 0，不会被全局 timeout 掐断；传了才生效
-  signal?: AbortSignal; // 取消信号，取消后抛 AbortError
-  query?: Record<string, string>; // 查询参数，自动拼接及编码
-  retry?: number; // 底层单次请求的重试次数；配了 reconnect 时固定为 0
-  retryDelay?: number | ((attempt: number) => number | Promise<number>); // 重连延迟的兜底
-  retryCodes?: number[]; // 重连状态码的兜底
-  hooks?: Hooks; // 四个Hook
-  reconnect?: SSEReconnect; // 断线重连，不传则断流直接抛错；不传时沿用全局 sseReconnect
+  path: string; // relative path or full http(s):// URL
+  method?: string; // HTTP method, default GET
+  body?: BodyInit | Record<string, unknown> | unknown[] | null; // request body
+  headers?: HeadersInit; // accept: text/event-stream is added when missing
+  timeout?: number; // defaults to 0, the global timeout never cuts a long connection
+  signal?: AbortSignal; // throws AbortError on cancel
+  query?: Record<string, string>; // joined and encoded automatically
+  retry?: number; // retries of a single request, forced to 0 when reconnect is set
+  retryDelay?: number | ((attempt: number) => number | Promise<number>); // fallback for reconnect delay
+  retryCodes?: number[]; // fallback for reconnect codes
+  hooks?: Hooks; // four hooks
+  reconnect?: SSEReconnect; // without it a dropped stream throws, falls back to the global sseReconnect
 ```
 
-`reconnect` 三个字段：
+`reconnect` fields:
 ```ts
-  retry?: number; // 最多重连次数，默认 0
-  delay?: number | ((attempt: number) => number | Promise<number>); // 实际等待 Math.max(你的值, 服务端 retry)
-  codes?: number[]; // 命中这些状态码才重连，默认沿用 retryCodes
+  retry?: number; // max reconnects, default 0
+  delay?: number | ((attempt: number) => number | Promise<number>); // waits Math.max(yours, server retry)
+  codes?: number[]; // status codes that trigger a reconnect, defaults to retryCodes
 ```
 
-**返回参数**
+**Response**
 ```ts
-  // AsyncGenerator<SSEMessage>，用 for await 逐条取
-  event: string; // 事件名，没写就是 "message"
-  data: string; // 多行 data 已用 \n 拼好
-  id: string | undefined; // 事件 id，跨事件粘性
-  retry: number | undefined; // 服务端建议的重连间隔，给一次就一直带
+  // AsyncGenerator<SSEMessage>, consumed with for await
+  event: string; // "message" when not set
+  data: string; // multi-line data joined with \n
+  id: string | undefined; // sticky across events
+  retry: number | undefined; // server-suggested interval, sticky once sent
 ```
 
 ## raw
 
-拿到未消费的原生 `Response`
+Returns the native `Response`, body untouched.
 
 ```ts
 const res = await api.raw("/big.zip");
 await res.arrayBuffer();
 ```
 
-**请求参数**
+**Request**
 ` const res = await api.raw(path: string, options?: RequestOptions) `
 ```ts
-  path: string; // 相对路径或 http(s):// 完整 URL
-  options?: RequestOptions; // 同 api.request，见上文
+  path: string; // relative path or full http(s):// URL
+  options?: RequestOptions; // same as api.request
 ```
 
-**返回参数**
+**Response**
 ```ts
-  // 原生 Response，body 未消费
+  // native Response, body not consumed
   status: number;
   ok: boolean;
   headers: Headers;
-  body: ReadableStream<Uint8Array> | null; // 自己读
+  body: ReadableStream<Uint8Array> | null; // read it yourself
 ```
 
-**注意事项**
+**Notes**
 
-- 不检查状态码：4xx、5xx 正常返回，要自己判 `res.ok`
-- 不解析 body
-- 不触发 `Response` 和 `ResponseError` 钩子
-- 不按状态码重试：只有超时（`TimeoutError`）会重试，网络层连不上（`TypeError`）不重试
+- No status check: 4xx and 5xx come back as-is, check `res.ok` yourself
+- Body is not parsed
+- `Response` and `ResponseError` hooks do not fire
+- No status-code retry: only timeouts (`TimeoutError`) retry, network failures (`TypeError`) do not
 
-## 钩子
+## Hooks
 
 ```ts
 const api = createClient({
@@ -219,22 +222,22 @@ const api = createClient({
   hooks: {
     Request: [({ headers }) => headers.set("authorization", `Bearer ${token}`)],
     Response: [({ result }) => console.log(result.code)],
-    RequestError: [({ error }) => console.warn("没发出去", error)],
+    RequestError: [({ error }) => console.warn("request failed", error)],
     ResponseError: [({ error, code }) => console.warn(code, error)],
   },
 });
 ```
 
-**请求参数**
+**Request**
 ` hooks?: Hooks `
 ```ts
-  Request?: RequestHook[]; // 发请求前，改 url / method / headers / body
-  Response?: ResponseHook[]; // 解析完成后，改 result
-  RequestError?: RequestErrorHook[]; // fetch 本身失败
-  ResponseError?: ResponseErrorHook[]; // 非 2xx 或解析失败
+  Request?: RequestHook[]; // before sending, edit url / method / headers / body
+  Response?: ResponseHook[]; // after parsing, edit result
+  RequestError?: RequestErrorHook[]; // fetch itself failed
+  ResponseError?: ResponseErrorHook[]; // non-2xx or parse failure
 ```
 
-各钩子收到的上下文：
+Context each hook receives:
 ```ts
   // Request
   url: string; method: string; headers: Headers; body: string | undefined;
@@ -246,21 +249,21 @@ const api = createClient({
   error: unknown; code: number; headers: Headers; url: string;
 ```
 
-**返回参数**
+**Response**
 ```ts
-  void | Promise<void>; // 不接收返回值，靠改上下文生效
+  void | Promise<void>; // nothing is read back, mutate the context instead
 ```
 
-**注意事项**
+**Notes**
 
-- 串行执行，前一个抛错会中断后面的
-- 钩子抛错会被包成 `HookError`，且不触发重试
-- `RequestError`,`ResponseError`钩子抛错会被吞掉，不影响其它钩子
-- 全局钩子与单次请求的钩子叠加，先全局后单次
+- Run in sequence, a throw stops the rest
+- A thrown hook is wrapped into `HookError` and is not retried
+- Throws inside `RequestError` / `ResponseError` are swallowed
+- Global hooks and per-request hooks stack, global first
 
-## 错误处理
+## Error Handling
 
-失败一律抛异常，所以 `HttpResult.ok` 恒为 `true`：
+Everything fails by throwing, so `HttpResult.ok` is always `true`:
 
 ```ts
 import {
@@ -274,26 +277,26 @@ import {
 try {
   await api.get("/missing");
 } catch (e) {
-  if (e instanceof HttpError) console.error(e.status, e.body); // 非 2xx
-  else if (e instanceof TimeoutError) console.error(e.timeout); // 超时
-  else if (e instanceof AbortError) console.error("已取消"); // 主动取消
-  else if (e instanceof ParseError) console.error(e.body); // 解析失败
-  else if (e instanceof HookError) console.error(e.hook); // 钩子抛错
+  if (e instanceof HttpError) console.error(e.status, e.body); // non-2xx
+  else if (e instanceof TimeoutError) console.error(e.timeout); // timeout
+  else if (e instanceof AbortError) console.error("aborted"); // cancelled
+  else if (e instanceof ParseError) console.error(e.body); // parse failure
+  else if (e instanceof HookError) console.error(e.hook); // hook threw
 }
 ```
 
-**抛出类型**
+**Thrown types**
 ```ts
-  HttpError: { status: number; path: string; method: string; body: string; headers: Headers }; // 非 2xx
-  TimeoutError: { timeout: number; path: string; method: string }; // 超时
-  AbortError: { path: string; method: string }; // 主动取消
-  ParseError: { path: string; method: string; body: string; headers: Headers }; // 解析失败
-  HookError: { hook: string; cause: unknown }; // 钩子抛错
+  HttpError: { status: number; path: string; method: string; body: string; headers: Headers }; // non-2xx
+  TimeoutError: { timeout: number; path: string; method: string }; // timeout
+  AbortError: { path: string; method: string }; // cancelled
+  ParseError: { path: string; method: string; body: string; headers: Headers }; // parse failure
+  HookError: { hook: string; cause: unknown }; // hook threw
 ```
 
-`body` 只保留前 500 字符。
+`body` keeps only the first 500 characters.
 
-## 重试
+## Retry
 
 ```ts
 const api = createClient({
@@ -304,21 +307,21 @@ const api = createClient({
 });
 ```
 
-**请求参数**
+**Request**
 ```ts
-  retry?: number; // 最多重试次数，默认 0；总请求次数是 retry + 1
-  retryDelay?: number | ((attempt: number) => number | Promise<number>); // 默认 1000 * 2 ** (attempt - 1)，即 1s、2s、4s……
-  retryCodes?: number[]; // 命中才重试，默认 [429, 500, 502, 503, 504, 508]
+  retry?: number; // max retries, default 0; total attempts = retry + 1
+  retryDelay?: number | ((attempt: number) => number | Promise<number>); // default 1000 * 2 ** (attempt - 1), i.e. 1s, 2s, 4s...
+  retryCodes?: number[]; // default [429, 500, 502, 503, 504, 508]
 ```
 
-**注意事项**
+**Notes**
 
-- 只有超时、以及命中 `retryCodes` 的状态码会重试
-- 取消、解析失败、钩子抛错、网络层连不上都不重试
-- 单次请求传的同名字段覆盖全局
-- 重试耗尽后抛最后一次的错误
+- Only timeouts and status codes in `retryCodes` are retried
+- Cancellation, parse failures, hook throws and network failures are not retried
+- Per-request fields override the global ones
+- The last error is thrown once retries run out
 
-## 超时与取消
+## Timeout and Cancellation
 
 ```ts
 const api = createClient({ timeout: 10_000 });
@@ -328,65 +331,65 @@ const pending = api.get("/slow", { signal: ac.signal });
 ac.abort();
 ```
 
-**请求参数**
+**Request**
 ```ts
-  timeout?: number; // 毫秒，0 或负数表示不限时；单次传的覆盖全局
-  signal?: AbortSignal; // 与全局的合并，任一触发就取消
+  timeout?: number; // milliseconds, 0 or negative means no limit; per-request wins
+  signal?: AbortSignal; // merged with the global one, any abort cancels
 ```
 
-**抛出类型**
+**Thrown types**
 ```ts
-  TimeoutError: { timeout: number; path: string; method: string; cause: unknown }; // 超时
-  AbortError: { path: string; method: string; cause: unknown }; // 主动取消，cause 是原始 DOMException
+  TimeoutError: { timeout: number; path: string; method: string; cause: unknown }; // timeout
+  AbortError: { path: string; method: string; cause: unknown }; // cancelled, cause is the original DOMException
 ```
 
-**注意事项**
+**Notes**
 
-- 重试等待期间取消也会立即中断
-- `api.sse` 的 `timeout` 默认 `0`，长连接不会被全局超时掐断
+- Cancelling during a retry wait aborts immediately
+- `api.sse` uses `timeout: 0`, a long connection is never cut by the global timeout
 
-## 请求体自动解析
+## Request Body
 
-**判定规则**
+**Rules**
 ```ts
-  纯对象、数组                       → JSON.stringify，并自动补 content-type: application/json
-  字符串                             → 原样发送，content-type 由 fetch 补
-  FormData、URLSearchParams、Blob    → 原样发送，content-type 由 fetch 补（含 boundary）
-  null、undefined                    → 不发 body
+  plain objects and arrays        → JSON.stringify, content-type: application/json is added
+  strings                         → sent as-is, content-type filled by fetch
+  FormData, URLSearchParams, Blob → sent as-is, content-type filled by fetch (boundary included)
+  null, undefined                 → no body
 ```
 
-## 响应自动解析
+## Response Parsing
 
-**可传参指定解析类型**
+**Specify a type**
 ```ts
-  responseType?: "json" | "text" | "blob" | "arrayBuffer" | "bytes" | "stream"; // 不传则按 content-type 自动判断
+  responseType?: "json" | "text" | "blob" | "arrayBuffer" | "bytes" | "stream"; // when omitted, content-type decides
 ```
 
-**判定规则**
+**Rules**
 ```ts
-  // 不传 responseType 时，按 content-type 从上往下匹配
-  含 event-stream → ReadableStream | null
-  含 json → 解析结果，空 body 给 undefined
-  text/*、xml、html、svg、form-urlencoded、无 content-type → string，空 body 给 undefined
-  其余（图片、pdf、octet-stream……）→ Blob
+  // without responseType, matched top-down against content-type
+  contains event-stream → ReadableStream | null
+  contains json → parsed value, undefined for an empty body
+  text/*, xml, html, svg, form-urlencoded, missing content-type → string, undefined for an empty body
+  anything else (images, pdf, octet-stream...) → Blob
 
-  // 传了 responseType 时
-  "json" → 先读 text 再 JSON.parse，空 body 给 undefined，解析失败抛 ParseError
-  "text" → string，空 body 给 undefined
+  // with responseType
+  "json" → text then JSON.parse, undefined for an empty body, throws ParseError on failure
+  "text" → string, undefined for an empty body
   "blob" → Blob
   "arrayBuffer" → ArrayBuffer
   "bytes" → Uint8Array
   "stream" → ReadableStream | null
 ```
 
-**返回参数**
+**Response**
 ```ts
-  data: T; // 实际类型由上面规则决定，泛型由调用时指定
+  data: T; // actual type follows the rules above, T is given at the call site
 ```
 
-对应写法：
+Usage:
 ```ts
-await api.get<Data>("/x"); // 自动判断
+await api.get<Data>("/x"); // auto
 await api.get<Data>("/x", { responseType: "json" });
 await api.get<string>("/x", { responseType: "text" });
 await api.get<Blob>("/x", { responseType: "blob" });
