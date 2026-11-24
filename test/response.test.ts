@@ -10,7 +10,7 @@ async function respond<T>(
   const original = globalThis.fetch
   globalThis.fetch = (async () => response) as unknown as typeof fetch
   try {
-    return await run(createClient({ baseUrl: 'https://base.test' }))
+    return await run(createClient({ baseURL: 'https://base.test' }))
   } finally {
     globalThis.fetch = original
   }

@@ -28,7 +28,7 @@ async function runWith<T>(
   }) as unknown as typeof fetch
 
   try {
-    const client = createClient({ baseUrl: 'https://base.test', retryDelay: 1, ...config })
+    const client = createClient({ baseURL: 'https://base.test', retryDelay: 1, ...config })
     let result: T | undefined
     try {
       result = await action(client)
@@ -84,7 +84,7 @@ test('一直 500，retry: 2 → 3 次后抛 HttpError(500)', async () => {
   }) as unknown as typeof fetch
 
   try {
-    const client = createClient({ baseUrl: 'https://base.test', retryDelay: 1 })
+    const client = createClient({ baseURL: 'https://base.test', retryDelay: 1 })
     await assert.rejects(
       () => client.get('/x', { retry: 2 }),
       (err: unknown) => {
@@ -136,7 +136,7 @@ test('超时可重试，retry: 1 → 2 次后抛 TimeoutError', async () => {
   }) as unknown as typeof fetch
 
   try {
-    const client = createClient({ baseUrl: 'https://base.test', retryDelay: 1 })
+    const client = createClient({ baseURL: 'https://base.test', retryDelay: 1 })
     await assert.rejects(
       () => client.get('/x', { retry: 1, timeout: 30 }),
       (err: unknown) => {
@@ -158,7 +158,7 @@ test('主动 abort 不重试，retry: 3 → 只调用 1 次', async () => {
   }) as unknown as typeof fetch
 
   try {
-    const client = createClient({ baseUrl: 'https://base.test', retryDelay: 1 })
+    const client = createClient({ baseURL: 'https://base.test', retryDelay: 1 })
     const ctrl = new AbortController()
     const pending = client.get('/x', { retry: 3, signal: ctrl.signal })
     ctrl.abort()

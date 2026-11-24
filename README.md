@@ -7,7 +7,7 @@ Zero-dependency TypeScript HTTP client built on native `fetch`, with built-in SS
 [中文文档](./README-cn.md)
 
 - Throws on non-2xx, no need to check `ok` yourself
-- `baseUrl` prefix and `query` joined automatically
+- `baseURL` prefix and `query` joined automatically
 - `get` / `post` / `put` / `del` shortcuts, `path` can also be a full `http(s)://` URL
 - Typed: `api.get<User>()` gives you a `User`
 - Parses the body by `content-type`
@@ -28,7 +28,7 @@ Node >= 20.
 import { createClient } from "@djiji/freq";
 
 // create one client with shared config — this step is required
-const api = createClient({ baseUrl: "https://example.com" });
+const api = createClient({ baseURL: "https://example.com" });
 
 // describe the shape you expect
 interface User {
@@ -82,7 +82,7 @@ Note: `.get()`, `.post()`, `.put()` and `.del()` take almost the same options.
 **Request**
 ` const api = createClient(options?: HttpConfig) `
 ```ts
-  baseUrl?: string; // URL prefix
+  baseURL?: string; // URL prefix
   headers?: HeadersInit; // default headers
   timeout?: number; // request timeout
   signal?: AbortSignal; // cancellation signal
@@ -218,7 +218,7 @@ await res.arrayBuffer();
 
 ```ts
 const api = createClient({
-  baseUrl: "https://api.example.com",
+  baseURL: "https://api.example.com",
   hooks: {
     Request: [({ headers }) => headers.set("authorization", `Bearer ${token}`)],
     Response: [({ result }) => console.log(result.code)],
@@ -300,7 +300,7 @@ try {
 
 ```ts
 const api = createClient({
-  baseUrl: "https://api.example.com",
+  baseURL: "https://api.example.com",
   retry: 3,
   retryDelay: (attempt) => attempt * 500,
   retryCodes: [429, 500, 502, 503, 504, 508],

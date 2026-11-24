@@ -17,7 +17,7 @@ test('两侧都没有斜杠', () => {
     assert.equal(buildUrl('https://a.com', 'json/x'), 'https://a.com/json/x')
 })
 
-test('baseUrl 自带路径', () => {
+test('baseURL 自带路径', () => {
     assert.equal(buildUrl('https://a.com/api', '/json/x'), 'https://a.com/api/json/x')
 })
 
@@ -25,6 +25,6 @@ test('多余斜杠全部清掉', () => {
     assert.equal(buildUrl('https://a.com///', '///json/x'), 'https://a.com/json/x')
 })
 
-test('相对路径且无 baseUrl 抛错', () => {
-    assert.throws(() => buildUrl(undefined, '/json/x'), /baseUrl is required/)
+test('相对路径且无 baseURL 抛错', () => {
+    assert.throws(() => buildUrl(undefined, '/json/x'), /baseURL is required/)
 })

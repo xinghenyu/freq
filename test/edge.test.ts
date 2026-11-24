@@ -29,7 +29,7 @@ async function withFetch(
   }) as unknown as typeof fetch
 
   try {
-    await run(createClient({ baseUrl: 'https://base.test', ...config }), calls)
+    await run(createClient({ baseURL: 'https://base.test', ...config }), calls)
   } finally {
     globalThis.fetch = original
   }
@@ -93,7 +93,7 @@ test('空 path 与多斜杠 path 的拼接', () => {
   assert.equal(buildUrl('https://base.test/', '/list'), 'https://base.test/list')
 })
 
-test('协议相对地址不应被拼到 baseUrl 后面', async () => {
+test('协议相对地址不应被拼到 baseURL 后面', async () => {
   let seen = ''
   const original = globalThis.fetch
   globalThis.fetch = (async (input: string | URL | Request) => {
@@ -103,7 +103,7 @@ test('协议相对地址不应被拼到 baseUrl 后面', async () => {
 
   try {
     await assert.rejects(
-      () => createClient({ baseUrl: 'https://base.test' }).get('//other.test/x'),
+      () => createClient({ baseURL: 'https://base.test' }).get('//other.test/x'),
       /protocol-relative/
     )
   } finally {

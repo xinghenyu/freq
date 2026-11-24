@@ -33,7 +33,7 @@ async function capture(
   }) as unknown as typeof fetch
 
   try {
-    const client = createClient({ baseUrl: 'https://base.test' })
+    const client = createClient({ baseURL: 'https://base.test' })
     await run(client)
   } finally {
     globalThis.fetch = original

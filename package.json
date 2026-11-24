@@ -33,6 +33,14 @@
   ],
   "author": "djiji",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xinghenyu/freq.git"
+  },
+  "homepage": "https://github.com/xinghenyu/freq#readme",
+  "bugs": {
+    "url": "https://github.com/xinghenyu/freq/issues"
+  },
   "devDependencies": {
     "@types/node": "^26.6.6",
     "tsup": "^9.0.0",

@@ -51,7 +51,7 @@ test('成功请求返回 data / ok / code', async () => {
   await withFetch(
     async () => okJson([{ name: 'A' }, { name: 'B' }]),
     async () => {
-      const client = createClient({ baseUrl: 'https://base.test' })
+      const client = createClient({ baseURL: 'https://base.test' })
       const res = await client.request<{ name: string }[]>('/json/x')
       assert.equal(res.code, 200)
       assert.equal(res.ok, true)
@@ -64,7 +64,7 @@ test('404 抛 HttpError 并携带 status / path / method / body', async () => {
   await withFetch(
     async () => new Response('not found', { status: 404 }),
     async () => {
-      const client = createClient({ baseUrl: 'https://base.test' })
+      const client = createClient({ baseURL: 'https://base.test' })
       await assert.rejects(
         () => client.request('/json/x'),
         (err: unknown) => {
@@ -84,7 +84,7 @@ test('500 抛 HttpError', async () => {
   await withFetch(
     async () => new Response('boom', { status: 500 }),
     async () => {
-      const client = createClient({ baseUrl: 'https://base.test' })
+      const client = createClient({ baseURL: 'https://base.test' })
       await assert.rejects(
         () => client.request('/json/x', { method: 'POST' }),
         (err: unknown) => {
@@ -107,7 +107,7 @@ test('实例头与单次头合并，单次覆盖同名', async () => {
     },
     async () => {
       const client = createClient({
-        baseUrl: 'https://base.test',
+        baseURL: 'https://base.test',
         headers: { 'X-App': 'freq', 'X-Only-Instance': 'yes' }
       })
       await client.request('/json/x', {
@@ -131,7 +131,7 @@ test('query 拼进最终 URL', async () => {
       return okJson([])
     },
     async () => {
-      const client = createClient({ baseUrl: 'https://base.test' })
+      const client = createClient({ baseURL: 'https://base.test' })
       await client.request('/json/x', { query: { name: 'xmas', limit: '10' } })
     }
   )
@@ -147,7 +147,7 @@ test('空 query 不产生尾随问号', async () => {
       return okJson([])
     },
     async () => {
-      const client = createClient({ baseUrl: 'https://base.test' })
+      const client = createClient({ baseURL: 'https://base.test' })
       await client.request('/json/x', { query: {} })
     }
   )
@@ -155,7 +155,7 @@ test('空 query 不产生尾随问号', async () => {
   assert.equal(captured, 'https://base.test/json/x')
 })
 
-test('绝对 URL 绕过 baseUrl', async () => {
+test('绝对 URL 绕过 baseURL', async () => {
   let captured = ''
   await withFetch(
     async (input) => {
@@ -163,7 +163,7 @@ test('绝对 URL 绕过 baseUrl', async () => {
       return okJson([])
     },
     async () => {
-      const client = createClient({ baseUrl: 'https://base.test' })
+      const client = createClient({ baseURL: 'https://base.test' })
       await client.request('https://other.test/json/x')
     }
   )
@@ -179,7 +179,7 @@ test('get 固定使用 GET 方法', async () => {
       return okJson([])
     },
     async () => {
-      const client = createClient({ baseUrl: 'https://base.test' })
+      const client = createClient({ baseURL: 'https://base.test' })
       await client.get('/json/x', { query: { a: '1' } })
     }
   )
@@ -189,7 +189,7 @@ test('get 固定使用 GET 方法', async () => {
 
 test('超时抛 TimeoutError', async () => {
   await withFetch(hanging, async () => {
-    const client = createClient({ baseUrl: 'https://base.test' })
+    const client = createClient({ baseURL: 'https://base.test' })
     await assert.rejects(
       () => client.request('/json/x', { timeout: 30 }),
       (err: unknown) => {
@@ -204,7 +204,7 @@ test('超时抛 TimeoutError', async () => {
 
 test('主动 abort 抛 AbortError', async () => {
   await withFetch(hanging, async () => {
-    const client = createClient({ baseUrl: 'https://base.test' })
+    const client = createClient({ baseURL: 'https://base.test' })
     const ctrl = new AbortController()
     const pending = client.request('/json/x', { signal: ctrl.signal })
     ctrl.abort()
@@ -218,7 +218,7 @@ test('主动 abort 抛 AbortError', async () => {
 
 test('abort 优先于 timeout', async () => {
   await withFetch(hanging, async () => {
-    const client = createClient({ baseUrl: 'https://base.test' })
+    const client = createClient({ baseURL: 'https://base.test' })
     const ctrl = new AbortController()
     const pending = client.request('/json/x', { timeout: 5000, signal: ctrl.signal })
     ctrl.abort()
@@ -232,7 +232,7 @@ test('abort 优先于 timeout', async () => {
 test('实例级 config.signal 可以中断请求', async () => {
   await withFetch(hanging, async () => {
     const ctrl = new AbortController()
-    const client = createClient({ baseUrl: 'https://base.test', signal: ctrl.signal })
+    const client = createClient({ baseURL: 'https://base.test', signal: ctrl.signal })
     const pending = client.request('/json/x')
     ctrl.abort()
     await assert.rejects(pending, (err: unknown) => {
@@ -246,7 +246,7 @@ test('config.signal 与单次 signal 并存时都能中断', async () => {
   await withFetch(hanging, async () => {
     const instanceCtrl = new AbortController()
     const requestCtrl = new AbortController()
-    const client = createClient({ baseUrl: 'https://base.test', signal: instanceCtrl.signal })
+    const client = createClient({ baseURL: 'https://base.test', signal: instanceCtrl.signal })
     const pending = client.request('/json/x', { signal: requestCtrl.signal })
     instanceCtrl.abort()
     await assert.rejects(pending, (err: unknown) => {

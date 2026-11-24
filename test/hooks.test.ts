@@ -25,7 +25,7 @@ async function capture(
   }) as unknown as typeof fetch
 
   try {
-    await run(createClient({ baseUrl: 'https://base.test', ...config }))
+    await run(createClient({ baseURL: 'https://base.test', ...config }))
     return call
   } finally {
     globalThis.fetch = original
@@ -87,7 +87,7 @@ test('hook 改 method 后 HttpError 记录的是实际方法', async () => {
 
   try {
     const client = createClient({
-      baseUrl: 'https://base.test',
+      baseURL: 'https://base.test',
       hooks: { Request: [(ctx) => { ctx.method = 'POST' }] }
     })
 
@@ -169,7 +169,7 @@ test('hook 改 method 后 ParseError 记录的也是实际方法', async () => {
 
   try {
     const client = createClient({
-      baseUrl: 'https://base.test',
+      baseURL: 'https://base.test',
       hooks: { Request: [(ctx) => { ctx.method = 'POST' }] }
     })
 
@@ -185,7 +185,7 @@ test('hook 改 method 后 TimeoutError 记录的也是实际方法', async () =>
 
   try {
     const client = createClient({
-      baseUrl: 'https://base.test',
+      baseURL: 'https://base.test',
       hooks: { Request: [(ctx) => { ctx.method = 'POST' }] }
     })
 
@@ -204,7 +204,7 @@ test('hook 改 method 后 AbortError 记录的也是实际方法', async () => {
 
   try {
     const client = createClient({
-      baseUrl: 'https://base.test',
+      baseURL: 'https://base.test',
       hooks: { Request: [(ctx) => { ctx.method = 'POST' }] }
     })
 
@@ -275,7 +275,7 @@ test('非 2xx 响应不会触发 Response hook', async () => {
 
   try {
     const client = createClient({
-      baseUrl: 'https://base.test',
+      baseURL: 'https://base.test',
       hooks: { Response: [() => { called = true }] }
     })
     await assert.rejects(() => client.get('/x'), HttpError)

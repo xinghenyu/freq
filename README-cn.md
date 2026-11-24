@@ -26,7 +26,7 @@ Node >= 20。
 import { createClient } from "@djiji/freq";
 
 // 创建一个全局的连接配置，这是必要步骤
-const api = createClient({ baseUrl: "https://example.com" });
+const api = createClient({ baseURL: "https://example.com" });
 
 // 定义一个用户接口
 interface User {
@@ -215,7 +215,7 @@ await res.arrayBuffer();
 
 ```ts
 const api = createClient({
-  baseUrl: "https://api.example.com",
+  baseURL: "https://api.example.com",
   hooks: {
     Request: [({ headers }) => headers.set("authorization", `Bearer ${token}`)],
     Response: [({ result }) => console.log(result.code)],
@@ -297,7 +297,7 @@ try {
 
 ```ts
 const api = createClient({
-  baseUrl: "https://api.example.com",
+  baseURL: "https://api.example.com",
   retry: 3,
   retryDelay: (attempt) => attempt * 500,
   retryCodes: [429, 500, 502, 503, 504, 508],
