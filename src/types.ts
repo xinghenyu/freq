@@ -1,5 +1,5 @@
 export interface HttpConfig {
-  baseUrl?: string;
+  baseURL?: string;
   headers?: HeadersInit;
   timeout?: number;
   signal?: AbortSignal;

@@ -157,7 +157,7 @@ export async function requestResult(
     timeoutNum && timeoutNum > 0 ? AbortSignal.timeout(timeoutNum) : undefined;
   const signal = mergeSignals([defaultSignal, userSignal, timeoutSignal]);
 
-  let url = buildUrl(config.baseUrl, path);
+  let url = buildUrl(config.baseURL, path);
   if (query) {
     url = buildQuery(url, query);
   }

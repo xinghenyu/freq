@@ -14,13 +14,13 @@ export function isAbsoluteUrl(input: string): boolean {
   }
 }
 
-export function buildUrl(baseUrl: string | undefined, path: string): string {
+export function buildUrl(baseURL: string | undefined, path: string): string {
   if (isAbsoluteUrl(path)) return path;
-  if (!baseUrl)
-    throw new Error(`baseUrl is required when path is not absolute: ${path}`);
+  if (!baseURL)
+    throw new Error(`baseURL is required when path is not absolute: ${path}`);
   if (/^\/\/[^/]/.test(path))
     throw new Error(`protocol-relative URL is not supported: ${path}`);
-  const base = baseUrl.replace(/\/+$/, "");
+  const base = baseURL.replace(/\/+$/, "");
   const tail = path.replace(/^\/+/, "");
   return `${base}/${tail}`;
 }
