@@ -1,5 +1,5 @@
 {
-  "name": "freq",
+  "name": "@djiji/freq",
   "version": "1.0.0",
   "description": "Zero-dependency TypeScript HTTP client built on native fetch, with retry, hooks and SSE.",
   "type": "module",
@@ -19,6 +19,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "prepublishOnly": "npm run build",
     "build": "tsup src/index.ts --format esm --minify --clean && tsc -p tsconfig.build.json",
     "check": "tsc --noEmit",
     "test": "tsx --test \"test/**/*.test.ts\""
@@ -30,8 +31,8 @@
     "sse",
     "typescript"
   ],
-  "author": "",
-  "license": "ISC",
+  "author": "djiji",
+  "license": "MIT",
   "devDependencies": {
     "@types/node": "^26.6.6",
     "tsup": "^9.0.0",
